@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AVI Player Helper</title>
+    <meta name="description" content="AVI Player Helper (Go + ffmpeg + HLS)" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <h1>本地 AVI 播放辅助</h1>
+        <p class="subtitle">选择本地 AVI（很大），上传到本地服务后边转边播（HLS）。</p>
+      </header>
+
+      <section class="card">
+        <div class="row">
+          <label class="file">
+            <input id="file" type="file" accept=".avi,video/avi" />
+            <span>选择 AVI 文件</span>
+          </label>
+
+          <button id="start" class="btn" disabled>开始</button>
+        </div>
+
+        <div class="meta">
+          <div><span class="k">状态</span><span id="status" class="v">未开始</span></div>
+          <div><span class="k">Job</span><span id="job" class="v">-</span></div>
+        </div>
+
+        <div class="log" id="log"></div>
+      </section>
+
+      <section class="card">
+        <video id="video" class="video" controls playsinline></video>
+      </section>
+
+      <footer class="footer">
+        <div>
+          <a href="/api/health" target="_blank" rel="noreferrer">health</a>
+        </div>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+

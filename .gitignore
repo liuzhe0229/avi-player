@@ -1,0 +1,23 @@
+data/
+web/node_modules/
+web/dist/
+web/.vite/
+web/*.tsbuildinfo
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Go build outputs
+*.exe
+*.out
+*.test
+
+# Bundled binaries (keep README, ignore actual binaries)
+bin/ffmpeg
+bin/ffmpeg.exe
+bin/ffprobe
+bin/ffprobe.exe
+bin/*.dll
+

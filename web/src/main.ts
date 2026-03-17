@@ -41,6 +41,10 @@ function playHls(url: string) {
   const hls = new Hls({
     lowLatencyMode: false,
     backBufferLength: 90,
+    // When starting transcoding, the playlist may 404 briefly until ffmpeg writes it.
+    manifestLoadingMaxRetry: 20,
+    manifestLoadingRetryDelay: 500,
+    manifestLoadingMaxRetryTimeout: 30_000,
   });
   hls.loadSource(url);
   hls.attachMedia(elVideo);
@@ -51,6 +55,19 @@ function playHls(url: string) {
       hls.destroy();
     }
   });
+}
+
+async function waitForUrl(url: string, timeoutMs: number): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await fetch(url, { method: "GET" });
+      if (res.ok) return;
+    } catch {
+      // ignore and retry
+    }
+    await new Promise((r) => window.setTimeout(r, 500));
+  }
 }
 
 async function uploadFile(file: File): Promise<string> {
@@ -98,25 +115,14 @@ async function fetchJob(jobId: string): Promise<JobResp | null> {
   return (await res.json()) as JobResp;
 }
 
-/**
- * 轮询获取 job 状态，直到 job 就绪
- * @param jobId - job id
- * @param onReadyUrl - 就绪回调
- */
-function startPolling(jobId: string, onReadyUrl: (url: string) => void) {
+function startPolling(jobId: string) {
   stopPolling();
   pollTimer = window.setInterval(async () => {
     const j = await fetchJob(jobId);
-    console.log("j", j);
     if (!j) return;
 
     if (j.status) setStatus(j.status);
     if (j.error) log(`后端错误: ${j.error}`);
-
-    if (j.status === "ready" && j.playlistUrl) {
-      stopPolling();
-      onReadyUrl(j.playlistUrl);
-    }
   }, 1000);
 }
 
@@ -148,11 +154,13 @@ elStart.addEventListener("click", async () => {
     const playlistUrl = await startJob(jobId);
     log(`HLS 播放列表: ${playlistUrl}`);
 
-    startPolling(jobId, (readyUrl) => {
-      log("HLS 就绪，开始播放。");
-      console.log("readyUrl", readyUrl);
-      playHls(readyUrl);
-    });
+    // 关键改动：不等待后端标记 ready，拿到 m3u8 URL 就直接尝试播放。
+    // hls.js 会持续拉取，等 m3u8/分片生成后即可出画面。
+    log("等待播放列表生成（无需等待转码完成）…");
+    await waitForUrl(playlistUrl, 120_000);
+    log("开始播放…");
+    playHls(playlistUrl);
+    startPolling(jobId);
   } catch (e) {
     log(String(e instanceof Error ? e.message : e));
     setStatus("失败");
